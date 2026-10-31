@@ -1,0 +1,212 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 1: Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+    function incoming() {
+      return request.resource.data;
+    }
+    function existing() {
+      return resource.data;
+    }
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    function isAdmin() {
+      return isVerified() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'iitiankartikbhaiya@gmail.com'
+      );
+    }
+
+    // Validation Blueprints
+    function isValidInstitution(data) {
+      return data.keys().hasAll(['id', 'name', 'timezone', 'adminUid', 'createdAt']) &&
+        data.keys().hasOnly(['id', 'name', 'timezone', 'adminUid', 'createdAt']) &&
+        isValidId(data.id) &&
+        data.name is string && data.name.size() >= 2 && data.name.size() <= 200 &&
+        data.timezone is string && data.timezone.size() >= 2 && data.timezone.size() <= 64 &&
+        isValidId(data.adminUid) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'institutionId', 'fullName', 'email', 'role', 'departmentId', 'academicYear', 'semester', 'createdAt']) &&
+        data.keys().hasOnly(['uid', 'institutionId', 'fullName', 'email', 'role', 'departmentId', 'academicYear', 'semester', 'createdAt', 'updatedAt']) &&
+        isValidId(data.uid) &&
+        data.uid == request.auth.uid &&
+        isValidId(data.institutionId) &&
+        data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 120 &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 254 &&
+        data.role is string && data.role in ['STUDENT', 'FACULTY', 'COLLEGE_ADMIN', 'SUPER_ADMIN'] &&
+        data.departmentId is string && data.departmentId.size() >= 1 && data.departmentId.size() <= 100 &&
+        data.academicYear is string && data.academicYear.size() >= 1 && data.academicYear.size() <= 40 &&
+        data.semester is string && data.semester.size() >= 1 && data.semester.size() <= 40 &&
+        data.createdAt is timestamp &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidAnnouncement(data) {
+      return data.keys().hasAll(['id', 'institutionId', 'authorUid', 'title', 'description', 'category', 'actionItem', 'priority', 'needsAttentionToday', 'confidence', 'originalContent', 'sourceType', 'verificationStatus', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'institutionId', 'authorUid', 'title', 'description', 'date', 'startTime', 'endTime', 'venue', 'category', 'departmentId', 'targetAudience', 'registrationUrl', 'deadline', 'actionItem', 'priority', 'needsAttentionToday', 'confidence', 'missingFields', 'originalContent', 'sourceType', 'verificationStatus', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.institutionId) &&
+        isValidId(data.authorUid) &&
+        data.authorUid == request.auth.uid &&
+        data.title is string && data.title.size() >= 2 && data.title.size() <= 240 &&
+        data.description is string && data.description.size() <= 2000 &&
+        data.category is string && data.category.size() >= 2 && data.category.size() <= 60 &&
+        data.actionItem is string && data.actionItem.size() <= 500 &&
+        data.priority is string && data.priority in ['Urgent', 'Upcoming', 'Expired', 'Needs Review'] &&
+        data.needsAttentionToday is bool &&
+        data.confidence is number && data.confidence >= 0 && data.confidence <= 100 &&
+        data.originalContent is string && data.originalContent.size() >= 1 && data.originalContent.size() <= 4000 &&
+        data.sourceType is string && data.sourceType.size() >= 1 && data.sourceType.size() <= 60 &&
+        data.verificationStatus is string && data.verificationStatus in ['Pending', 'Verified', 'Archived'] &&
+        (!('date' in data) || data.date == null || (data.date is string && data.date.size() <= 40)) &&
+        (!('startTime' in data) || data.startTime == null || (data.startTime is string && data.startTime.size() <= 40)) &&
+        (!('endTime' in data) || data.endTime == null || (data.endTime is string && data.endTime.size() <= 40)) &&
+        (!('venue' in data) || data.venue == null || (data.venue is string && data.venue.size() <= 200)) &&
+        (!('departmentId' in data) || data.departmentId == null || (data.departmentId is string && data.departmentId.size() <= 100)) &&
+        (!('registrationUrl' in data) || data.registrationUrl == null || (data.registrationUrl is string && data.registrationUrl.size() <= 500)) &&
+        (!('deadline' in data) || data.deadline == null || (data.deadline is string && data.deadline.size() <= 40)) &&
+        (!('targetAudience' in data) || (data.targetAudience is list && data.targetAudience.size() <= 10 && (data.targetAudience.size() == 0 || (data.targetAudience[0] is string && data.targetAudience[0].size() <= 100)))) &&
+        (!('missingFields' in data) || (data.missingFields is list && data.missingFields.size() <= 20 && (data.missingFields.size() == 0 || (data.missingFields[0] is string && data.missingFields[0].size() <= 100)))) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasAll(['id', 'userId', 'institutionId', 'title', 'dueDate', 'category', 'completed', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'userId', 'institutionId', 'title', 'dueDate', 'category', 'completed', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.userId) &&
+        data.userId == request.auth.uid &&
+        isValidId(data.institutionId) &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 240 &&
+        data.dueDate is string && data.dueDate.size() <= 40 &&
+        data.category is string && data.category.size() >= 1 && data.category.size() <= 60 &&
+        data.completed is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidReminder(data) {
+      return data.keys().hasAll(['id', 'userId', 'institutionId', 'announcementId', 'title', 'remindAt', 'reminderType', 'createdAt']) &&
+        data.keys().hasOnly(['id', 'userId', 'institutionId', 'announcementId', 'title', 'remindAt', 'reminderType', 'createdAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.userId) &&
+        data.userId == request.auth.uid &&
+        isValidId(data.institutionId) &&
+        data.announcementId is string && data.announcementId.size() >= 1 && data.announcementId.size() <= 128 &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 240 &&
+        data.remindAt is string && data.remindAt.size() >= 1 && data.remindAt.size() <= 60 &&
+        data.reminderType is string && data.reminderType in ['Assignment', 'Examination', 'Event', 'Registration', 'Custom'] &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidBookmark(data) {
+      return data.keys().hasAll(['id', 'userId', 'institutionId', 'announcementId', 'createdAt']) &&
+        data.keys().hasOnly(['id', 'userId', 'institutionId', 'announcementId', 'createdAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.userId) &&
+        data.userId == request.auth.uid &&
+        isValidId(data.institutionId) &&
+        isValidId(data.announcementId) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidFeedbackSurvey(data) {
+      return data.keys().hasAll(['id', 'authorUid', 'institutionId', 'difficultyScore', 'channelsUsedCount', 'missedFrequency', 'confusingCategory', 'preferredReminder', 'createdAt']) &&
+        data.keys().hasOnly(['id', 'authorUid', 'institutionId', 'difficultyScore', 'channelsUsedCount', 'missedFrequency', 'confusingCategory', 'preferredReminder', 'createdAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.authorUid) &&
+        data.authorUid == request.auth.uid &&
+        isValidId(data.institutionId) &&
+        data.difficultyScore is number && data.difficultyScore >= 1 && data.difficultyScore <= 5 &&
+        data.channelsUsedCount is number && data.channelsUsedCount >= 1 && data.channelsUsedCount <= 20 &&
+        data.missedFrequency is string && data.missedFrequency.size() >= 1 && data.missedFrequency.size() <= 60 &&
+        data.confusingCategory is string && data.confusingCategory.size() >= 1 && data.confusingCategory.size() <= 60 &&
+        data.preferredReminder is string && data.preferredReminder.size() >= 1 && data.preferredReminder.size() <= 60 &&
+        data.createdAt is timestamp;
+    }
+
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && request.auth.uid == adminId;
+      allow list, create, update, delete: if false;
+    }
+
+    match /institutions/{institutionId} {
+      allow get: if isSignedIn() && isValidId(institutionId) && (resource.data.adminUid == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.adminUid == request.auth.uid || isAdmin());
+      allow create: if isVerified() && isValidId(institutionId) && isValidInstitution(incoming()) && incoming().id == institutionId && incoming().adminUid == request.auth.uid && incoming().createdAt == request.time && isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isVerified() && isValidId(userId) && request.auth.uid == userId && isValidUserProfile(incoming()) && incoming().createdAt == request.time && (incoming().role == 'STUDENT' || isAdmin());
+      allow update: if isVerified() && isValidId(userId) && isValidUserProfile(incoming()) && incoming().uid == existing().uid && incoming().institutionId == existing().institutionId && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && (
+        (request.auth.uid == userId && incoming().role == existing().role && incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'departmentId', 'academicYear', 'semester', 'updatedAt'])) ||
+        isAdmin()
+      );
+      allow delete: if isVerified() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+    }
+
+    match /announcements/{announcementId} {
+      allow get: if isSignedIn() && isValidId(announcementId) && (resource.data.authorUid == request.auth.uid || resource.data.verificationStatus == 'Verified' || isAdmin());
+      allow list: if isSignedIn() && (resource.data.authorUid == request.auth.uid || resource.data.verificationStatus == 'Verified' || isAdmin());
+      allow create: if isVerified() && isValidId(announcementId) && isValidAnnouncement(incoming()) && incoming().id == announcementId && incoming().createdAt == request.time && incoming().updatedAt == request.time && (incoming().verificationStatus == 'Pending' || isAdmin());
+      allow update: if isVerified() && isValidId(announcementId) && isValidAnnouncement(incoming()) && incoming().id == existing().id && incoming().institutionId == existing().institutionId && incoming().authorUid == existing().authorUid && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && (
+        (existing().authorUid == request.auth.uid && existing().verificationStatus != 'Archived' && incoming().verificationStatus == existing().verificationStatus && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'date', 'startTime', 'endTime', 'venue', 'category', 'departmentId', 'targetAudience', 'registrationUrl', 'deadline', 'actionItem', 'priority', 'needsAttentionToday', 'updatedAt'])) ||
+        isAdmin()
+      );
+      allow delete: if isVerified() && isValidId(announcementId) && (existing().authorUid == request.auth.uid || isAdmin());
+    }
+
+    match /tasks/{taskId} {
+      allow get: if isSignedIn() && isValidId(taskId) && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isVerified() && isValidId(taskId) && isValidTask(incoming()) && incoming().id == taskId && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isVerified() && isValidId(taskId) && isValidTask(incoming()) && existing().userId == request.auth.uid && incoming().id == existing().id && incoming().userId == existing().userId && incoming().institutionId == existing().institutionId && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['completed', 'title', 'dueDate', 'category', 'updatedAt']) ||
+        isAdmin()
+      );
+      allow delete: if isVerified() && isValidId(taskId) && existing().userId == request.auth.uid;
+    }
+
+    match /reminders/{reminderId} {
+      allow get: if isSignedIn() && isValidId(reminderId) && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isVerified() && isValidId(reminderId) && isValidReminder(incoming()) && incoming().id == reminderId && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isVerified() && isValidId(reminderId) && existing().userId == request.auth.uid;
+    }
+
+    match /bookmarks/{bookmarkId} {
+      allow get: if isSignedIn() && isValidId(bookmarkId) && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isVerified() && isValidId(bookmarkId) && isValidBookmark(incoming()) && incoming().id == bookmarkId && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isVerified() && isValidId(bookmarkId) && existing().userId == request.auth.uid;
+    }
+
+    match /feedbackSurveys/{surveyId} {
+      allow get: if isSignedIn() && isValidId(surveyId) && (resource.data.authorUid == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.authorUid == request.auth.uid || isAdmin());
+      allow create: if isVerified() && isValidId(surveyId) && isValidFeedbackSurvey(incoming()) && incoming().id == surveyId && incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+  }
+}

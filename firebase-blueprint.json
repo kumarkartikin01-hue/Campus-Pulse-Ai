@@ -1,0 +1,159 @@
+{
+  "entities": {
+    "Institution": {
+      "title": "Institution",
+      "description": "Educational institution tenant record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "timezone": { "type": "string", "maxLength": 64 },
+        "adminUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "timezone", "adminUid", "createdAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Student, Faculty, or Admin user profile isolated per institution",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "institutionId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "fullName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "email": { "type": "string", "maxLength": 254 },
+        "role": { "type": "string", "enum": ["STUDENT", "FACULTY", "COLLEGE_ADMIN", "SUPER_ADMIN"] },
+        "departmentId": { "type": "string", "maxLength": 100 },
+        "academicYear": { "type": "string", "maxLength": 40 },
+        "semester": { "type": "string", "maxLength": 40 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "institutionId", "fullName", "email", "role", "departmentId", "academicYear", "semester", "createdAt"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Structured campus announcement extracted and verified",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "institutionId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 2, "maxLength": 240 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "date": { "type": "string", "maxLength": 40 },
+        "startTime": { "type": "string", "maxLength": 40 },
+        "endTime": { "type": "string", "maxLength": 40 },
+        "venue": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "maxLength": 60 },
+        "departmentId": { "type": "string", "maxLength": 100 },
+        "targetAudience": { "type": "array" },
+        "registrationUrl": { "type": "string", "maxLength": 500 },
+        "deadline": { "type": "string", "maxLength": 40 },
+        "actionItem": { "type": "string", "maxLength": 500 },
+        "priority": { "type": "string", "enum": ["Urgent", "Upcoming", "Expired", "Needs Review"] },
+        "needsAttentionToday": { "type": "boolean" },
+        "confidence": { "type": "number" },
+        "missingFields": { "type": "array" },
+        "originalContent": { "type": "string", "maxLength": 4000 },
+        "sourceType": { "type": "string", "maxLength": 60 },
+        "verificationStatus": { "type": "string", "enum": ["Pending", "Verified", "Archived"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "institutionId", "authorUid", "title", "description", "category", "actionItem", "priority", "needsAttentionToday", "confidence", "originalContent", "sourceType", "verificationStatus", "createdAt", "updatedAt"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Personal student academic planner task",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "institutionId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "dueDate": { "type": "string", "maxLength": 40 },
+        "category": { "type": "string", "maxLength": 60 },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "institutionId", "title", "dueDate", "category", "completed", "createdAt", "updatedAt"]
+    },
+    "Reminder": {
+      "title": "Reminder",
+      "description": "User reminder linked to an announcement or custom deadline",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "institutionId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "announcementId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "remindAt": { "type": "string", "maxLength": 60 },
+        "reminderType": { "type": "string", "enum": ["Assignment", "Examination", "Event", "Registration", "Custom"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "institutionId", "announcementId", "title", "remindAt", "reminderType", "createdAt"]
+    },
+    "Bookmark": {
+      "title": "Bookmark",
+      "description": "Saved announcement reference for a student",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "institutionId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "announcementId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "institutionId", "announcementId", "createdAt"]
+    },
+    "FeedbackSurvey": {
+      "title": "FeedbackSurvey",
+      "description": "Optional anonymous student feedback survey on campus communication friction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "institutionId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "difficultyScore": { "type": "number" },
+        "channelsUsedCount": { "type": "number" },
+        "missedFrequency": { "type": "string", "maxLength": 60 },
+        "confusingCategory": { "type": "string", "maxLength": 60 },
+        "preferredReminder": { "type": "string", "maxLength": 60 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "authorUid", "institutionId", "difficultyScore", "channelsUsedCount", "missedFrequency", "confusingCategory", "preferredReminder", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/institutions/{institutionId}": {
+      "schema": { "$ref": "#/entities/Institution" },
+      "description": "Institution tenants"
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profiles containing PII strictly isolated to owner and admin"
+    },
+    "/announcements/{announcementId}": {
+      "schema": { "$ref": "#/entities/Announcement" },
+      "description": "Campus announcements isolated by institutionId"
+    },
+    "/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "Student personal academic tasks"
+    },
+    "/reminders/{reminderId}": {
+      "schema": { "$ref": "#/entities/Reminder" },
+      "description": "Student personal reminders"
+    },
+    "/bookmarks/{bookmarkId}": {
+      "schema": { "$ref": "#/entities/Bookmark" },
+      "description": "Student saved announcement bookmarks"
+    },
+    "/feedbackSurveys/{surveyId}": {
+      "schema": { "$ref": "#/entities/FeedbackSurvey" },
+      "description": "Student feedback survey submissions"
+    }
+  }
+}
